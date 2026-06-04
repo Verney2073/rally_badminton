@@ -204,6 +204,10 @@ function renderSchedule(result) {
     </div>
   `;
 
+  output.querySelectorAll('.game-row').forEach(row => {
+    row.addEventListener('click', () => row.classList.toggle('done'));
+  });
+
   output.classList.remove('hidden');
   output.scrollIntoView({behavior: 'smooth', block: 'start'});
 }

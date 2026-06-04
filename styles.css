@@ -407,10 +407,52 @@ body {
   border-bottom: 1px solid var(--line);
   font-size: 13.5px;
   gap: 0;
+  cursor: pointer;
   transition: background .1s;
 }
 .game-row:last-child { border-bottom: none; }
 .game-row:hover { background: var(--surface-2); }
+
+/* ── Game completed state ─────────────────────────────────────────────── */
+@keyframes row-done-flash {
+  0%   { background: var(--surface); }
+  18%  { background: oklch(0.91 0.07 145); }
+  100% { background: var(--surface-2); }
+}
+
+.game-row.done {
+  animation: row-done-flash 0.45s ease-out forwards;
+}
+.game-row.done:hover { background: var(--surface-2); }
+
+.game-row.done .game-side { opacity: 0.3; }
+
+.game-row.done .game-side .players {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-3);
+  text-decoration-thickness: 1.5px;
+  color: var(--ink-3);
+}
+
+.game-row.done .game-vs,
+.game-row.done .game-sitting { color: var(--ink-4); }
+
+.game-row.done .game-num {
+  color: transparent;
+  position: relative;
+}
+.game-row.done .game-num::before {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  line-height: 1;
+}
 .game-num {
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -425,6 +467,7 @@ body {
   padding: 5px 8px;
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
   border-left: 2px solid transparent;
+  transition: opacity 0.22s ease;
 }
 .game-side.near {
   background: var(--accent-soft);
@@ -543,3 +586,93 @@ body {
 .schedule-section { display: flex; flex-direction: column; gap: 20px; }
 
 .hidden { display: none !important; }
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .header { padding: 0 16px; }
+
+  /* Page fills the full width with no horizontal gutters */
+  .page {
+    padding: 0 0 64px;
+    gap: 0;
+  }
+
+  /* Cards go edge-to-edge — lose side borders and radius */
+  .card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding: 20px 16px;
+    margin-bottom: 8px;
+  }
+
+  .schedule-section { gap: 8px; }
+
+  .session-strip {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding: 12px 16px;
+  }
+
+  .games-list {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* Column headers don't fit at mobile widths */
+  .games-list-head { display: none; }
+
+  /* Reflow game rows: match-up spans full width on top, metadata row below */
+  .game-row {
+    grid-template-columns: 1fr 24px 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "near vs  far"
+      "num  num sit";
+    padding: 10px 12px;
+    gap: 4px 0;
+  }
+  .game-num        { grid-area: num; }
+  .game-side.near  { grid-area: near; border-radius: var(--r-sm); }
+  .game-vs         { grid-area: vs; align-self: center; }
+  .game-side.far   { grid-area: far; border-radius: var(--r-sm); }
+  .game-sitting    { grid-area: sit; text-align: right; }
+
+  .stats-table {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* Arrow buttons: 44×44px touch targets, laid out side-by-side */
+  .player-row { height: 56px; }
+
+  .player-arrows {
+    flex-direction: row;
+    gap: 2px;
+  }
+
+  .player-arrow {
+    width: 44px;
+    height: 44px;
+    font-size: 13px;
+    border-radius: var(--r-sm);
+  }
+
+  .player-remove {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Generate button full-width on mobile */
+  .generate-row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .generate-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
