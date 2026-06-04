@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rally — Badminton Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="brand-mark"></div>
+  <span class="brand-name">Rally</span>
+  <span class="brand-tag mono">badminton</span>
+</header>
+
+<main class="page">
+
+  <!-- Player setup -->
+  <div class="card">
+    <div class="section-h">
+      <h2>Players <span class="sub">arrival order &darr;</span></h2>
+      <div class="section-h-r">
+        <button class="btn sm" onclick="addPlayer()">+ Add player</button>
+      </div>
+    </div>
+    <div id="player-list" class="player-list"></div>
+
+    <div class="games-control">
+      <span class="games-label">Games to generate</span>
+      <input type="number" id="num-games" class="games-input" value="12" min="1" max="200">
+    </div>
+
+    <div class="generate-row">
+      <button class="btn ghost sm" onclick="clearAll()">Clear</button>
+      <button id="generate-btn" class="btn primary" onclick="generateSchedule()">
+        Generate schedule <span class="arrow">&rarr;</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Schedule output -->
+  <div id="schedule-output" class="hidden schedule-section"></div>
+
+</main>
+
+<script src="badminton.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
