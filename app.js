@@ -59,6 +59,10 @@ function renderPlayers() {
 }
 
 function addPlayer() {
+  if (players.length >= 12) {
+    alert('Maximum 12 players per session.');
+    return;
+  }
   players.push('');
   renderPlayers();
   const inputs = document.querySelectorAll('.player-input');
@@ -104,6 +108,12 @@ function generateSchedule() {
   }
 
   const numGames = Math.max(1, parseInt(document.getElementById('num-games').value) || 12);
+
+  if (numGames > 100) {
+    alert('Maximum 100 games per session.');
+    return;
+  }
+
   const btn = document.getElementById('generate-btn');
   btn.disabled = true;
   btn.innerHTML = 'Generating…';
