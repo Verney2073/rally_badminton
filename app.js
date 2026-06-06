@@ -1,5 +1,6 @@
-let players    = ['', '', '', ''];
+let players = ['', '', '', ''];
 let lastResult = null;
+let completedGames = new Set();
 
 function escHtml(s) {
   return String(s)
@@ -86,8 +87,10 @@ function movePlayer(i, dir) {
 function clearAll() {
   players = [];
   lastResult = null;
+  completedGames = new Set();
   localStorage.removeItem('badsched_players');
   localStorage.removeItem('badsched_result');
+  localStorage.removeItem('badsched_done');
   renderPlayers();
   document.getElementById('schedule-output').classList.add('hidden');
 }
@@ -122,6 +125,8 @@ function generateSchedule() {
     try {
       const scheduler = new BadmintonScheduler(names);
       lastResult = scheduler.generate(numGames);
+      completedGames = new Set();
+      localStorage.removeItem('badsched_done');
       renderSchedule(lastResult);
       localStorage.setItem('badsched_players', JSON.stringify(names));
       localStorage.setItem('badsched_result', JSON.stringify(lastResult));
@@ -204,8 +209,20 @@ function renderSchedule(result) {
     </div>
   `;
 
-  output.querySelectorAll('.game-row').forEach(row => {
-    row.addEventListener('click', () => row.classList.toggle('done'));
+  output.querySelectorAll('.game-row').forEach((row, idx) => {
+    const gameNum = result.games[idx].gameNumber;
+    if (completedGames.has(gameNum)) {
+      row.classList.add('done');
+    }
+    row.addEventListener('click', () => {
+      row.classList.toggle('done');
+      if (row.classList.contains('done')) {
+        completedGames.add(gameNum);
+      } else {
+        completedGames.delete(gameNum);
+      }
+      localStorage.setItem('badsched_done', JSON.stringify([...completedGames]));
+    });
   });
 
   output.classList.remove('hidden');
@@ -217,7 +234,9 @@ function renderSchedule(result) {
   try {
     const sp = localStorage.getItem('badsched_players');
     const sr = localStorage.getItem('badsched_result');
+    const sd = localStorage.getItem('badsched_done');
     if (sp) { players = JSON.parse(sp); }
+    if (sd) { completedGames = new Set(JSON.parse(sd)); }
     renderPlayers();
     if (sr) {
       lastResult = JSON.parse(sr);
