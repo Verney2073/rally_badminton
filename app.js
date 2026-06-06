@@ -174,6 +174,43 @@ function renderSchedule(result) {
     `;
   }).join('');
 
+  const pairCount = {};
+  games.forEach(g => {
+    [[...g.nearSide], [...g.farSide]].forEach(pair => {
+      if (pair.length === 2) {
+        const key = [...pair].sort().join('\0');
+        pairCount[key] = (pairCount[key] || 0) + 1;
+      }
+    });
+  });
+  const getPairCount = (a, b) => pairCount[[a, b].sort().join('\0')] || 0;
+
+  const partnerRowsHtml = ps.map(rowP => `
+    <tr>
+      <th class="partner-row-head">${escHtml(rowP)}</th>
+      ${ps.map(colP => {
+        if (rowP === colP) return `<td class="partner-self">—</td>`;
+        const n = getPairCount(rowP, colP);
+        return `<td class="partner-cell${n === 0 ? ' partner-zero' : ''}">${n}</td>`;
+      }).join('')}
+    </tr>
+  `).join('');
+
+  const partnerMatrixHtml = `
+    <div>
+      <div class="section-h"><h2>Partnerships</h2></div>
+      <div class="partner-wrap">
+        <table class="partner-grid">
+          <thead><tr>
+            <th class="partner-corner"></th>
+            ${ps.map(p => `<th class="partner-col-head">${escHtml(p)}</th>`).join('')}
+          </tr></thead>
+          <tbody>${partnerRowsHtml}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
   output.innerHTML = `
     <div class="session-strip">
       <span class="pill">Session</span>
@@ -207,6 +244,8 @@ function renderSchedule(result) {
         ${statsHtml}
       </div>
     </div>
+
+    ${partnerMatrixHtml}
   `;
 
   output.querySelectorAll('.game-row').forEach((row, idx) => {
