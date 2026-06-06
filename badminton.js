@@ -182,6 +182,34 @@ class BadmintonScheduler {
     return [];
   }
 
+  _review(games) {
+    const limit = games.length * 2;
+    for (let pass = 0; pass < limit; pass++) {
+      let swapped = false;
+      for (let i = 0; i < games.length - 1; i++) {
+        const g = games[i];
+        const h = games[i + 1];
+        const gPairKeys = new Set([skey(g.nearSide), skey(g.farSide)]);
+        const hPairKeys = [skey(h.nearSide), skey(h.farSide)];
+        if (!hPairKeys.some(k => gPairKeys.has(k))) { continue; }
+        const hGroupKey = [...h.nearSide, ...h.farSide].sort().join('|');
+        for (let j = 0; j < games.length; j++) {
+          if (j === i || j === i + 1) { continue; }
+          const k = games[j];
+          if ([...k.nearSide, ...k.farSide].sort().join('|') !== hGroupKey) { continue; }
+          if ([skey(k.nearSide), skey(k.farSide)].some(kk => gPairKeys.has(kk))) { continue; }
+          [games[i + 1], games[j]] = [games[j], games[i + 1]];
+          swapped = true;
+          break;
+        }
+        if (swapped) { break; }
+      }
+      if (!swapped) { break; }
+    }
+    games.forEach((g, i) => { g.gameNumber = i + 1; });
+    return games;
+  }
+
   /**
    * Schedule up to numGames games and return a result object:
    * {
@@ -227,6 +255,8 @@ class BadmintonScheduler {
       sitting.forEach(p => { so[p]++; });
       return {gameNumber: i + 1, nearSide, farSide, sittingOut: sitting};
     });
+
+    this._review(games);
 
     return {
       players: this.players,
