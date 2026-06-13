@@ -386,7 +386,7 @@ body {
 }
 .games-list-head {
   display: grid;
-  grid-template-columns: 64px 1fr 38px 1fr 130px;
+  grid-template-columns: 28px 64px 1fr 38px 1fr 130px;
   padding: 9px 18px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
@@ -401,7 +401,7 @@ body {
 .games-list-head .sit-col { text-align: right; }
 .game-row {
   display: grid;
-  grid-template-columns: 64px 1fr 38px 1fr 130px;
+  grid-template-columns: 28px 64px 1fr 38px 1fr 130px;
   align-items: center;
   padding: 12px 18px;
   border-bottom: 1px solid var(--line);
@@ -412,6 +412,25 @@ body {
 }
 .game-row:last-child { border-bottom: none; }
 .game-row:hover { background: var(--surface-2); }
+
+.game-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--ink-4);
+  border-radius: var(--r-sm);
+  padding: 4px;
+  transition: color .1s, background .1s;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.game-drag-handle:hover { color: var(--ink-2); background: var(--surface-3); }
+.game-drag-handle:active { cursor: grabbing; }
+
+.game-row.dragging { opacity: 0.35; }
+.game-row.drag-over-top    { box-shadow: inset 0  3px 0 var(--accent); }
+.game-row.drag-over-bottom { box-shadow: inset 0 -3px 0 var(--accent); }
 
 /* ── Game completed state ─────────────────────────────────────────────── */
 @keyframes row-done-flash {
@@ -686,19 +705,20 @@ body {
 
   /* Reflow game rows: match-up spans full width on top, metadata row below */
   .game-row {
-    grid-template-columns: 1fr 24px 1fr;
+    grid-template-columns: 28px 1fr 24px 1fr;
     grid-template-rows: auto auto;
     grid-template-areas:
-      "near vs  far"
-      "num  num sit";
+      "drag near vs  far"
+      "drag num  num sit";
     padding: 10px 12px;
     gap: 4px 0;
   }
-  .game-num        { grid-area: num; }
-  .game-side.near  { grid-area: near; border-radius: var(--r-sm); }
-  .game-vs         { grid-area: vs; align-self: center; }
-  .game-side.far   { grid-area: far; border-radius: var(--r-sm); }
-  .game-sitting    { grid-area: sit; text-align: right; }
+  .game-drag-handle { grid-area: drag; align-self: stretch; }
+  .game-num         { grid-area: num; }
+  .game-side.near   { grid-area: near; border-radius: var(--r-sm); }
+  .game-vs          { grid-area: vs; align-self: center; }
+  .game-side.far    { grid-area: far; border-radius: var(--r-sm); }
+  .game-sitting     { grid-area: sit; text-align: right; }
 
   .stats-table {
     border-radius: 0;

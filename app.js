@@ -2,6 +2,8 @@ let players = ['', '', '', ''];
 let lastResult = null;
 let completedGames = new Set();
 
+const DRAG_HANDLE_SVG = '<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="2" r="1.3"/><circle cx="7" cy="2" r="1.3"/><circle cx="3" cy="6" r="1.3"/><circle cx="7" cy="6" r="1.3"/><circle cx="3" cy="10" r="1.3"/><circle cx="7" cy="10" r="1.3"/></svg>';
+
 function escHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -123,8 +125,7 @@ function generateSchedule() {
 
   setTimeout(() => {
     try {
-      const scheduler = new BadmintonScheduler(names);
-      lastResult = scheduler.generate(numGames);
+      lastResult = new BadmintonScheduler(names).generate(numGames);
       completedGames = new Set();
       localStorage.removeItem('badsched_done');
       renderSchedule(lastResult);
@@ -140,13 +141,14 @@ function generateSchedule() {
   }, 10);
 }
 
-function renderSchedule(result) {
+function renderSchedule(result, opts = {}) {
   const output = document.getElementById('schedule-output');
   const {players: ps, games, summary} = result;
   const hasSitouts = ps.length > 4;
 
   const gamesHtml = games.map(g => `
     <div class="game-row">
+      <div class="game-drag-handle" title="Drag to reorder">${DRAG_HANDLE_SVG}</div>
       <div class="game-num">Game&nbsp;${g.gameNumber}</div>
       <div class="game-side near">
         <div class="players">${escHtml(g.nearSide.join(' + '))}</div>
@@ -225,6 +227,7 @@ function renderSchedule(result) {
     <div class="games-list">
       <div class="games-list-head">
         <div></div>
+        <div></div>
         <div>Near side</div>
         <div class="vs-col"></div>
         <div>Far side</div>
@@ -264,8 +267,144 @@ function renderSchedule(result) {
     });
   });
 
+  const gamesList = output.querySelector('.games-list');
+  initGamesDragDrop(gamesList, result);
+
   output.classList.remove('hidden');
-  output.scrollIntoView({behavior: 'smooth', block: 'start'});
+  if (!opts.skipScroll) {
+    output.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+}
+
+// ── Drag-to-reorder ───────────────────────────────────────────────────────
+
+function reorderGames(fromIdx, toIdx) {
+  if (fromIdx === toIdx || toIdx === fromIdx + 1) return;
+  const games = lastResult.games;
+  const [item] = games.splice(fromIdx, 1);
+  games.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, item);
+  localStorage.setItem('badsched_result', JSON.stringify(lastResult));
+  renderSchedule(lastResult, { skipScroll: true });
+}
+
+function initGamesDragDrop(gamesList, result) {
+  const rows = [...gamesList.querySelectorAll('.game-row')];
+  let dragIdx = null;
+
+  // ── HTML5 Drag and Drop (mouse) ──────────────────────────────────────
+  rows.forEach((row, i) => {
+    const handle = row.querySelector('.game-drag-handle');
+    let dragFromHandle = false;
+
+    handle.addEventListener('click', e => e.stopPropagation());
+    handle.addEventListener('mousedown', () => { dragFromHandle = true; });
+
+    row.setAttribute('draggable', 'true');
+
+    row.addEventListener('dragstart', e => {
+      if (!dragFromHandle) { e.preventDefault(); return; }
+      dragFromHandle = false;
+      dragIdx = i;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(i));
+    });
+
+    row.addEventListener('dragend', () => {
+      dragFromHandle = false;
+      rows.forEach(r => r.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom'));
+      dragIdx = null;
+    });
+
+    row.addEventListener('dragover', e => {
+      if (dragIdx === null || dragIdx === i) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const { top, height } = row.getBoundingClientRect();
+      rows.forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+      row.classList.add(e.clientY < top + height / 2 ? 'drag-over-top' : 'drag-over-bottom');
+    });
+
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if (dragIdx === null || dragIdx === i) return;
+      const { top, height } = row.getBoundingClientRect();
+      reorderGames(dragIdx, e.clientY < top + height / 2 ? i : i + 1);
+    });
+
+    // ── Touch drag ───────────────────────────────────────────────────
+    handle.addEventListener('touchstart', e => {
+      const touch = e.touches[0];
+      const touchStartY = touch.clientY;
+      const touchStartX = touch.clientX;
+      const rowRect = row.getBoundingClientRect();
+      let touchDragActive = false;
+      let clone = null;
+      dragIdx = i;
+
+      function onTouchMove(ev) {
+        const t = ev.touches[0];
+        const dy = t.clientY - touchStartY;
+        const dx = t.clientX - touchStartX;
+
+        if (!touchDragActive && Math.hypot(dy, dx) > 6) {
+          touchDragActive = true;
+          row.classList.add('dragging');
+          clone = row.cloneNode(true);
+          Object.assign(clone.style, {
+            position: 'fixed',
+            left: rowRect.left + 'px',
+            top: rowRect.top + 'px',
+            width: rowRect.width + 'px',
+            opacity: '0.88',
+            pointerEvents: 'none',
+            zIndex: '1000',
+            background: 'var(--surface)',
+            boxShadow: '0 6px 20px rgba(0,0,0,.18)',
+            borderRadius: 'var(--r)',
+          });
+          document.body.appendChild(clone);
+        }
+
+        if (!touchDragActive) return;
+        ev.preventDefault();
+        clone.style.top = (rowRect.top + dy) + 'px';
+
+        clone.style.visibility = 'hidden';
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        clone.style.visibility = '';
+        const targetRow = el && el.closest('.game-row');
+        rows.forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+        if (targetRow && targetRow !== row) {
+          const { top, height } = targetRow.getBoundingClientRect();
+          targetRow.classList.add(t.clientY < top + height / 2 ? 'drag-over-top' : 'drag-over-bottom');
+        }
+      }
+
+      function onTouchEnd(ev) {
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onTouchEnd);
+        if (clone) { clone.remove(); clone = null; }
+        rows.forEach(r => r.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom'));
+        dragIdx = null;
+        if (!touchDragActive) return;
+
+        const t = ev.changedTouches[0];
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        const targetRow = el && el.closest('.game-row');
+        if (targetRow && targetRow !== row) {
+          const targetIdx = rows.indexOf(targetRow);
+          if (targetIdx !== -1) {
+            const { top, height } = targetRow.getBoundingClientRect();
+            reorderGames(i, t.clientY < top + height / 2 ? targetIdx : targetIdx + 1);
+          }
+        }
+      }
+
+      document.addEventListener('touchmove', onTouchMove, { passive: false });
+      document.addEventListener('touchend', onTouchEnd);
+    }, { passive: true });
+  });
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
